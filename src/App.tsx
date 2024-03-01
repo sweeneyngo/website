@@ -5,8 +5,9 @@ import Fuse from 'fuse.js';
 import Terminal from './components/Terminal';
 import Footer from './components/Footer';
 import { Weapon, WeaponApiResult, WeaponLog, IndexDict } from './types';
-import { DEBOUNCE_MSEC, SEARCH_THRESHOLD, VERSION } from './constants';
+import { DEBOUNCE_MSEC, SEARCH_THRESHOLD, VERSION, ENVIRONMENT } from './constants';
 
+const SERVER_URI = ENVIRONMENT === "production" ? "https://terra-api.fly.dev" : "http://localhost:5000";
 
 function App() {
   const {observe} = lozad(".lozad", {
@@ -203,7 +204,7 @@ function App() {
   */
   const save = () => {
     if (edit.length > 0) {
-      fetch('http://localhost:5000/obtain', {
+      fetch(`${SERVER_URI}/obtain`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -320,7 +321,7 @@ function App() {
 
   // Fetch all weapons from /weapons/
   useEffect(() => {
-    fetch('http://localhost:5000/weapons')
+    fetch(`${SERVER_URI}/weapons`)
       .then(response => response.json())
       .then((data: WeaponApiResult) => {
 
