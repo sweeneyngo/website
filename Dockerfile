@@ -12,14 +12,17 @@ ENV NODE_ENV=production
 FROM base as build
 
 # Install packages needed to build node modules
-RUN apt-get update -qq && \
-    apt-get install -y python-is-python3 pkg-config build-essential
+RUN apk update && \
+    apk add --no-cache \
+    python3 \
+    pkgconf \
+    build-base
 
 # Install node modules
 COPY --link package.json .
-RUN pnpm install --production=false
+RUN pnpm install
 
-# Copy application code
+# Copy source code
 COPY --link . .
 
 # Build application
@@ -28,12 +31,11 @@ RUN npm run build
 # Remove development dependencies
 RUN npm prune --production
 
-
 # Final stage for app image
 FROM base
 
 # Copy built application
-COPY --from=build /app/dist /app/dist
+COPY --from=build /usr/src/app/dist /usr/src/app/dist
 
 EXPOSE 3000
 CMD [ "npm", "run", "preview" ]
