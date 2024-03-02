@@ -4,9 +4,12 @@ import lozad from "lozad";
 import Fuse from 'fuse.js';
 import Terminal from './components/Terminal';
 import Footer from './components/Footer';
+import Login from './components/Login';
 import { Weapon, WeaponApiResult, WeaponLog, IndexDict } from './types';
+import { HTTPError } from './types';
 import { DEBOUNCE_MSEC, SEARCH_THRESHOLD, VERSION, ENVIRONMENT } from './constants';
 
+// @ts-expect-error - Ignore environment type
 const SERVER_URI = ENVIRONMENT === "production" ? "https://terra-api.fly.dev" : "http://localhost:5000";
 
 function App() {
@@ -19,6 +22,7 @@ function App() {
   const [result, setResult] = useState<Weapon[]>([]);
   const [edit, setEdit] = useState<WeaponLog[]>([]);
   const [keyBind, setKeyBind] = useState<string>("");
+  const [accessToken, setAccessToken] = useState<string>("");
 
   // View child components
   const [showTerminal, setShowTerminal] = useState<boolean>(false);
@@ -71,6 +75,89 @@ function App() {
         return newTerminal;
       });
     }
+  }
+
+  /**
+   * Login to the API.
+   *
+   * Check console for the access token,
+   * See Login component & Terminal component for use.
+   * If the user is logged in, retrieve the user's weapons.
+   * @error If the credentials are incorrect, throw a `401 Unauthorized`.
+   * @return {*} {void}
+   */
+  const handleLogin = (username: string, password: string) => {
+    if (!username || !password) return;
+    fetch('http://localhost:5000/login', {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({ username, password })
+        })
+        .then(response => {
+          if (!response.ok) {
+            throw new HTTPError(401, "Unauthorized", "/login", "POST", new Error("Incorrect username/password."));
+          }
+          return response.json();
+        })
+        .then(data => {
+            const accessToken = data.response.accessToken;
+            console.log({"accessToken": accessToken});
+
+            setAccessToken(accessToken);
+            retrieveWeapons(accessToken);
+        })
+        .catch((error) => {
+            console.error('Error:', error);
+        });
+  };
+
+  /**
+   * Clear the edit list.
+   * See Terminal component for use.
+   * @return {*} {void}
+   */
+  const handleClearEdit = () => {
+    setEdit(edit => {
+      edit.forEach((weapon) => {
+        obtainWeapon(weapon.gameId);
+      })
+      return [];
+    });
+
+  }
+
+  const retrieveWeapons = (accessToken: string) => {
+    fetch(`${SERVER_URI}/collection`, {
+      method: 'GET',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${accessToken}`
+      }
+    })
+    .then(response => response.json())
+    .then(data => {
+      if (!data["response"]) return;
+
+      const response: Weapon[] = data["response"]
+
+      // For each weapon in weapons, check if response has the weapon, if so, update the weapon's isObtained state.
+      const updatedWeapons = weapons.map((weapon) => {
+        const obtained = response.find((w) => w.gameId === weapon.gameId);
+        if (obtained) {
+          weapon.isObtained = true;
+        }
+        return weapon;
+      });
+
+      setWeapons([...updatedWeapons]);
+      setResult([])
+
+    })
+    .catch((error) => {
+      console.error('Error:', error);
+    });
   }
 
   /**
@@ -142,13 +229,13 @@ function App() {
    * Toggle the weapon's `isObtained` state.
    * If the weapon is being edited, add it to the edit list.
    * If the weapon is undoed, remove it from the edit list.
-   * @param {React.MouseEvent<HTMLElement>} e The click event
+   * @param {id} id The weapon's gameId (stored in e.currentTarget.id)
    * @return {*} {void}
    * @callback
    */
-  const obtainWeapon = (e: React.MouseEvent<HTMLElement>) => {
-    const weapon = weapons.find(weapon => weapon.gameId === e.currentTarget.id);
-    const resultWeapon = result.find(weapon => weapon.gameId === e.currentTarget.id);
+  const obtainWeapon = (id: string) => {
+    const weapon = weapons.find(weapon => weapon.gameId === id);
+    const resultWeapon = result.find(weapon => weapon.gameId === id);
     if (weapon && resultWeapon) {
       weapon.isObtained = !weapon.isObtained;
       resultWeapon.isObtained = !resultWeapon.isObtained;
@@ -203,25 +290,35 @@ function App() {
    * @callback
   */
   const save = () => {
-    if (edit.length > 0) {
-      fetch(`${SERVER_URI}/obtain`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJmcmVzaCI6ZmFsc2UsImlhdCI6MTcwOTA3ODU4NywianRpIjoiMjdjOWEzNmYtMWQwMS00MTM2LThlZDUtMDA3MzZhZmYwZTc3IiwidHlwZSI6ImFjY2VzcyIsInN1YiI6eyJ1c2VyX2lkIjoiOWIyN2Y1NGMtZTIyNC00MGZiLWI2NzUtOWFjODU3ZDE5ODIzIiwidXNlcm5hbWUiOiJ0ZXN0In0sIm5iZiI6MTcwOTA3ODU4NywiY3NyZiI6ImU5YzkxMzA3LTVjNTUtNDBhYS1hNzc3LTc1M2FhMzc2ZjI5YyIsImV4cCI6MTcwOTE2NDk4N30.dB7YoWaiRLz3mQsiwCPzH0ItYefEjw1ls3XD1jQ6BD8`
-        },
-        body: JSON.stringify(edit),
-      })
-      .then(response => response.json())
+
+    // Send the timestamp, isObtained, and item to the server.
+    // The server will handle the rest.
+
+    const data = edit.map((item) => {
+      return {
+        "gameId": item.gameId,
+        "isObtained": item.isObtained,
+        "timestamp": item.Timestamp,
+      }
+    });
+
+    fetch(`${SERVER_URI}/obtain`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${accessToken}`
+      },
+      body: JSON.stringify(data),
+      }).then(response => response.json())
       .then(data => {
-        console.log('Success:', data);
+        console.log('Saved your data!', data);
         setEdit([]);
         setSaving(false);
-      })
-      .catch((error) => {
+
+      }).catch((error) => {
         console.error('Error:', error);
-      });
-    }
+      }
+    );
   }
 
   /**
@@ -273,7 +370,7 @@ function App() {
           "_score": entry.score,
         }
       });
-      setResult(result);
+      setResult([...result]);
       return weapons;
     });
   }, []);
@@ -321,6 +418,12 @@ function App() {
 
   // Fetch all weapons from /weapons/
   useEffect(() => {
+
+    if (accessToken) {
+      retrieveWeapons(accessToken);
+      return;
+    }
+
     fetch(`${SERVER_URI}/weapons`)
       .then(response => response.json())
       .then((data: WeaponApiResult) => {
@@ -368,17 +471,25 @@ function App() {
           </div>
         </div>
 
-        {<Footer edit={edit}/>}
-        { showTerminal && <Terminal edit={edit}/>}
+
+        { showTerminal && <Terminal accessToken={accessToken} edit={edit} handleClearEdit={handleClearEdit}/>}
+        <Login accessToken={accessToken} handleLogin={handleLogin}/>
+        <Footer showTerminal={showTerminal} edit={edit}/>
         <div className="pb-4 bg-white flex justify-between">
               <label htmlFor="table-search" className="sr-only">Search</label>
-              <div className="relative mt-1">
-                  <div className="absolute inset-y-0 rtl:inset-r-0 start-0 flex items-center ps-3 pointer-events-none">
-                      <svg className="w-3 h-3 text-gray-500 dark:text-gray-400" aria-hidden="true" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 20 20">
-                          <path stroke="currentColor" strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="m19 19-4-4m0-7A7 7 0 1 1 1 8a7 7 0 0 1 14 0Z"/>
-                      </svg>
-                  </div>
-                  <input autoFocus onChange={(e)=>onSearch(e)} value={query} type="text" id="table-search" className="block pt-1 pb-1 ps-10 text-sm text-gray-900 border border-gray-200 rounded-lg w-60 bg-gray-50 transition-border duration-300 ease-in-out focus:outline-none focus:ring-2 focus:ring-stone-300/20" placeholder={`made with ❤  | ${VERSION}`}/>
+              <div className="flex items-center">
+                <div className="relative mt-1">
+                    <div className="absolute inset-y-0 rtl:inset-r-0 start-0 flex items-center ps-3 pointer-events-none">
+                        <svg className="w-3 h-3 text-gray-500 dark:text-gray-400" aria-hidden="true" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 20 20">
+                            <path stroke="currentColor" strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="m19 19-4-4m0-7A7 7 0 1 1 1 8a7 7 0 0 1 14 0Z"/>
+                        </svg>
+                    </div>
+                    <input autoFocus onChange={(e)=>onSearch(e)} value={query} type="text" id="table-search" className="block pt-1 pb-1 ps-10 text-sm text-gray-900 border border-gray-200 rounded-lg w-60 bg-gray-50 transition-border duration-300 ease-in-out focus:outline-none focus:ring-2 focus:ring-stone-300/20" placeholder={`made with ❤  | ${VERSION}`}/>
+                </div>
+                {!accessToken && <svg fill="#f87171" className="w-4 h-4 ml-3 animate__animated animate__headShake" viewBox="0 0 32 32" version="1.1" xmlns="http://www.w3.org/2000/svg">
+                  <title>Read-only, please log in.</title>
+                  <path d="M4 30.016q0 0.832 0.576 1.408t1.44 0.576h20q0.8 0 1.408-0.576t0.576-1.408v-14.016q0-0.832-0.576-1.408t-1.408-0.576v-4q0-2.048-0.8-3.872t-2.144-3.2-3.2-2.144-3.872-0.8q-2.72 0-5.024 1.344t-3.616 3.648-1.344 5.024v4q-0.832 0-1.44 0.576t-0.576 1.408v14.016zM8 28v-9.984h16v9.984h-16zM10.016 14.016v-4q0-2.496 1.728-4.256t4.256-1.76 4.256 1.76 1.76 4.256v4h-12z"></path>
+                </svg>}
               </div>
               <div onClick={() => saveChanges()} onMouseEnter={() => setOnSave(true)} onMouseLeave={() => setOnSave(false)} className="cursor-pointer min-w-20 flex justify-end">
                 {edit.length > 0 && <div className="animate__animated animate__fadeInUp animate__fast pt-4 text-xs text-stone-400 transition-all duration-300 ease-in-out hover:text-amber-600">{saving ? "saving.." : (onSave ? "wanna save?" : "now editing! ♦")}</div>}
@@ -405,12 +516,14 @@ function App() {
                   <tbody>
                       {result.map((weapon, index) => {
                         return (
-                          <tr key={index} id={weapon["gameId"]} onClick={(e) => obtainWeapon(e)} className="animate__animated animate__fadeIn animate__fast bg-white border-b dark:bg-gray-800 cursor-pointer dark:border-stone-700 hover:bg-stone-50 dark:hover:bg-gray-600">
+                          <tr key={index} id={weapon["gameId"]} onClick={(e) => obtainWeapon(e.currentTarget.id)} className="animate__animated animate__fadeIn animate__fast bg-white border-b dark:bg-gray-800 cursor-pointer dark:border-stone-700 hover:bg-stone-50 dark:hover:bg-gray-600">
                               <td className="w-4 p-4">
                                   <div className="flex items-center">
-                                      <div className="absolute flex pointer-events-none items-center justify-center z-10 w-4 h-4 rounded-full bg-stone-100">
-                                        <div className={`pointer-events-auto cursor-pointer z-2 w-3 h-3 rounded-full ${weapon["isObtained"] ? 'bg-amber-800 opacity-50 hover:opacity-70' : 'bg-zinc-500 opacity-10 hover:bg-amber-700 hover:opacity-30'}`}/>
-                                      </div>
+                                      { accessToken &&
+                                        <div className="absolute flex pointer-events-none items-center justify-center z-10 w-4 h-4 rounded-full bg-stone-100">
+                                          <div className={`pointer-events-auto cursor-pointer z-2 w-3 h-3 rounded-full ${weapon["isObtained"] ? 'bg-amber-800 opacity-50 hover:opacity-70' : 'bg-zinc-500 opacity-10 hover:bg-amber-700 hover:opacity-30'}`}/>
+                                        </div>
+                                      }
                                   </div>
                               </td>
                               <th scope="row" className="pl-6 py-6 flex items-center justify-center font-medium text-gray-900 whitespace-nowrap dark:text-white">
