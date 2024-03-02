@@ -13,8 +13,8 @@ pnpm install && pnpm run dev
 ```
 
 ## API
-terra does support an [open API](https://terra-api.fly.dev), but documentation is still underway. \
-For the time being, check out the development @ [terra-api](https://github.com/sweeneyngo/terra-api").
+terra does support an [**open API**](https://terra-api.fly.dev), but documentation is still underway. \
+For the time being, check out the development @ [**terra-api**](https://github.com/sweeneyngo/terra-api").
 
 ## So, why?
 
