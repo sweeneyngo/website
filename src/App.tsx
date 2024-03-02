@@ -7,10 +7,9 @@ import Footer from './components/Footer';
 import Login from './components/Login';
 import { Weapon, WeaponApiResult, WeaponLog, IndexDict } from './types';
 import { HTTPError } from './types';
-import { DEBOUNCE_MSEC, SEARCH_THRESHOLD, VERSION, ENVIRONMENT } from './constants';
+import { DEBOUNCE_MSEC, SEARCH_THRESHOLD, VERSION } from './constants';
 
-// @ts-expect-error - Ignore environment type
-const SERVER_URI = ENVIRONMENT === "production" ? "https://terra-api.fly.dev" : "http://localhost:5000";
+const SERVER_URI = import.meta.env.SERVER_URI;
 
 function App() {
   const {observe} = lozad(".lozad", {
