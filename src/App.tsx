@@ -9,7 +9,7 @@ import { Weapon, WeaponApiResult, WeaponLog, IndexDict } from './types';
 import { HTTPError } from './types';
 import { DEBOUNCE_MSEC, SEARCH_THRESHOLD, VERSION } from './constants';
 
-const SERVER_URI = import.meta.env.SERVER_URI;
+const SERVER_URI = import.meta.env.VITE_SERVER_URI;
 
 function App() {
   const {observe} = lozad(".lozad", {
@@ -87,7 +87,7 @@ function App() {
    */
   const handleLogin = (username: string, password: string) => {
     if (!username || !password) return;
-    fetch('http://localhost:5000/login', {
+    fetch(`${SERVER_URI}/login`, {
         method: 'POST',
         headers: {
             'Content-Type': 'application/json'
@@ -102,10 +102,10 @@ function App() {
         })
         .then(data => {
             const accessToken = data.response.accessToken;
-            console.log({"accessToken": accessToken});
-
+            // set AccessToken as cookie
+            document.cookie = `accessToken=${accessToken}; max-age=${data.response.accessExpiry}; path=/ ; secure; samesite=strict`;
             setAccessToken(accessToken);
-            retrieveWeapons(accessToken);
+            retrieveWeapons(weapons, accessToken);
         })
         .catch((error) => {
             console.error('Error:', error);
@@ -127,13 +127,13 @@ function App() {
 
   }
 
-  const retrieveWeapons = (accessToken: string) => {
+  const retrieveWeapons = (weapons: Weapon[], accessToken: string) => {
     fetch(`${SERVER_URI}/collection`, {
       method: 'GET',
       headers: {
         'Content-Type': 'application/json',
         'Authorization': `Bearer ${accessToken}`
-      }
+      },
     })
     .then(response => response.json())
     .then(data => {
@@ -417,16 +417,14 @@ function App() {
 
   // Fetch all weapons from /weapons/
   useEffect(() => {
-
-    if (accessToken) {
-      retrieveWeapons(accessToken);
-      return;
-    }
-
-    fetch(`${SERVER_URI}/weapons`)
+    fetch(`${SERVER_URI}/weapons`, {
+        method: 'GET',
+        headers: {
+          'Content-Type': 'application/json'
+        }
+      })
       .then(response => response.json())
       .then((data: WeaponApiResult) => {
-
         const weapons: Weapon[] = Object.values(data["response"]).map((weapon) => {
           return {
             ...weapon,
@@ -436,6 +434,17 @@ function App() {
           }
         });
         setWeapons(weapons);
+        return weapons;
+      }).then((weapons) => {
+
+        if (document.cookie) {
+          const cookies = document.cookie.split(';');
+          const accessToken = cookies.find((cookie) => cookie.includes("accessToken="))?.split('=')[1];
+          if (accessToken) {
+            setAccessToken(accessToken);
+            retrieveWeapons(weapons, accessToken);
+          }
+        }
       })
       .catch(error => console.error('Error:', error));
   }, []);
