@@ -3,6 +3,10 @@
 
 An item catalog/tracker for Terraria (as of [v1.4.4+](https://terraria.fandom.com/wiki/1.4.4.9)) for "Zenith"-type worlds!
 
+
+## Where to start?
+For starters, search for an item you're thinking of (maybe, terra?).\
+
 ## Building
 ```bash
 pnpm install && pnpm run dev 
