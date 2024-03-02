@@ -17,7 +17,8 @@ For the time being, check out the development @ [terra-api](https://github.com/s
 For a "blazingly" fast, flexible interface with minimal/no deps. 
 
 After completing my very first vanilla Terraria run (kudos to my boyfriend!), \
-we wanted to shoot for the elusive "true" 100%, which involves all items, collectibles, monsters (bestiary), and permanent buffs. \
+we wanted to shoot for the elusive "true" 100%, which involves all items, collectibles, monsters (bestiary), and permanent buffs.\
+Achieving this, sadly, is a [**monumental**](https://www.reddit.com/r/Terraria/comments/9bdva0/100_terraria_all_3862_obtainable_items_collected/) pain. \
 Unfortunately, I'm pretty restless for a method to the madness, so I built it myself!
 
 Check it out! [🔗](https://ifuxyl.dev)
