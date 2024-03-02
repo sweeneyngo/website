@@ -5,7 +5,7 @@ An item catalog/tracker for Terraria (as of [v1.4.4+](https://terraria.fandom.co
 
 
 ## Where to start?
-For starters, search for an item you're thinking of (maybe, terra?).\
+For starters, search for an item you're thinking of (maybe, terra?).
 
 ## Building
 ```bash
