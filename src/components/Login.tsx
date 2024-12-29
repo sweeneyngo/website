@@ -11,7 +11,7 @@ function Login({ accessToken, handleLogin} : LoginProps) {
 
 
   return (
-    <div className="fixed top-0 left-0 pl-10 pt-5">
+    <div className="fixed top-0 left-0 pl-5 pt-5">
         <div className="flex items-center justify-center bg-neutral-100 rounded-lg py-5 px-10">
             <div className="flex flex-col items-center">
                 <div className="relative">

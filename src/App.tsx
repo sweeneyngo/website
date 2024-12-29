@@ -470,7 +470,7 @@ function App() {
   }, [observe]);
 
   return (
-    <div tabIndex={0} ref={focusRef} onKeyDown={(e) => onKeybind(e)} className="flex p-5 items-center justify-center absolute w-full min-h-full h-max focus:outline-none focus:ring-transparent">
+    <div tabIndex={0} ref={focusRef} onKeyDown={(e) => onKeybind(e)} className="flex p-5 items-start justify-center absolute w-max min-h-full h-max focus:outline-none focus:ring-transparent">
       <div className="w-max h-max max-w-xl">
 
         <div className="fixed animate__animated animate__fadeIn animate__fast bottom-4 left-4 invisible md:visible">
@@ -483,10 +483,11 @@ function App() {
         { showTerminal && <Terminal accessToken={accessToken} edit={edit} handleClearEdit={handleClearEdit}/>}
         <Login accessToken={accessToken} handleLogin={handleLogin}/>
         <Footer showTerminal={showTerminal} edit={edit}/>
-        <div className="pb-4 bg-white flex justify-between">
+        <div className="fixed">
+          <div className={`relative pb-4 mt-32 bg-white flex justify-start`}>
               <label htmlFor="table-search" className="sr-only">Search</label>
               <div className="flex items-center">
-                <div className="relative mt-1">
+                <div className="relative">
                     <div className="absolute inset-y-0 rtl:inset-r-0 start-0 flex items-center ps-3 pointer-events-none">
                         <svg className="w-3 h-3 text-gray-500 dark:text-gray-400" aria-hidden="true" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 20 20">
                             <path stroke="currentColor" strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="m19 19-4-4m0-7A7 7 0 1 1 1 8a7 7 0 0 1 14 0Z"/>
@@ -503,7 +504,9 @@ function App() {
                 {edit.length > 0 && <div className="animate__animated animate__fadeInUp animate__fast pt-4 text-xs text-stone-400 transition-all duration-300 ease-in-out hover:text-amber-600">{saving ? "saving.." : (onSave ? "wanna save?" : "now editing! ♦")}</div>}
               </div>
           </div>
-          <div className="relative overflow-x-auto shadow-md sm:rounded-lg transition-all">
+        </div>
+        <div className="mt-44 max-h-[42rem] bg-red overflow-scroll shadow-md sm:rounded-lg transition-all">
+          <div className="relative">
               <table className="transition-transform w-full text-sm text-left rtl:text-right text-gray-500 dark:text-gray-400">
                   <thead className="text-xs text-gray-700 uppercase bg-stone-100 dark:bg-gray-700 dark:text-gray-400">
                       <tr>
@@ -534,10 +537,10 @@ function App() {
                                       }
                                   </div>
                               </td>
-                              <th scope="row" className="pl-6 py-6 flex items-center justify-center font-medium text-gray-900 whitespace-nowrap dark:text-white">
+                              <th scope="row" className="py-4 flex items-center justify-center font-medium text-gray-900 whitespace-nowrap dark:text-white">
                                   <img data-src={weapon.imageUri} alt={weapon["gameId"]} className="lozad max-w-10 max-h-10"/>
                               </th>
-                              <td className="px-6 py-4">
+                              <td className="px-2 py-4">
                                   <div className="flex">
                                     {getHighlight(weapon.name, weapon._matched)}
                                     <div className="px-3 flex flex-col items-center justify-center">
@@ -553,7 +556,7 @@ function App() {
                               <td className="text-center px-3 py-4">
                                   {weapon.rarityNumber}
                               </td>
-                              <td className="px-6 py-4">
+                              <td className="px-3 py-4">
                                   <a href={weapon.refUri} target="_blank" className="font-medium text-amber-800 opacity-30 hover:opacity-60 hover:text-amber-800">❤</a>
                               </td>
                           </tr>
@@ -562,6 +565,7 @@ function App() {
                   </tbody>
               </table>
           </div>
+        </div>
       </div>
     </div>
   )
